@@ -8,15 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.Nullable;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
-import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Account;
-import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.ExpenseType;
-import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Transaction;
 
 public class DBHelper extends SQLiteOpenHelper {
 
