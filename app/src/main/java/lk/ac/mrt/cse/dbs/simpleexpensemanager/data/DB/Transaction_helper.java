@@ -6,81 +6,89 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
+import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Account;
+import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.ExpenseType;
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Transaction;
 
-public class Transaction_helper extends SQLiteOpenHelper {
-    private static final String DATABASE_NAME = "db200160R.db";
-    private static final int DATABASE_VERSION = 1;//database version 1
+public class Transaction_helper  {
+    private static final String TRANSACTION_TABLE = "transction";
+    DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
-    public final static String TABLE_NAME = "Transaction_table";
-
-    /**Table Fields*/
     public final static String account_no = "account_no";
-    public final static String COLUMN_day = "day";
-    public final static String COLUMN_month = "month";
-    public final static String COLUMN_year = "year";
-    public final static String COLUMN_type = "type";
-    public final static String COLUMN_AMOUNT = "amount";
-    //public final static String COLUMN_STATUS = "status";
+    public final static String column_date = "date";
+    public final static String column_type = "type";
+    public final static String column_amount = "amount";
 
+    private DBHelper dbhelper;
 
-
-    public Transaction_helper(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    public  Transaction_helper(DBHelper dbhelper){
+        this.dbhelper=dbhelper;
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        // Create a String that contains the SQL statement to create the pets table
-        String SQL_CREATE_TRANSACTION_TABLE =  "CREATE TABLE " + TABLE_NAME + " ("
-                + account_no + " TEXT, "
-                + COLUMN_day + " INTEGER, "
-                + COLUMN_month + " INTEGER, "
-                + COLUMN_year + " INTEGER, "
-                + COLUMN_type + " TEXT, "
-                + COLUMN_AMOUNT + " REAL);";
-
-        // Execute the SQL statement
-        db.execSQL(SQL_CREATE_TRANSACTION_TABLE);
+    public void logTransac(Date date, String accountNo, ExpenseType expenseType, double amount) {
+        SQLiteDatabase db = dbhelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(account_no, accountNo);
+        values.put(column_date , format.format(date));//to format the date type
+        values.put(column_type, String.valueOf(expenseType));
+        values.put(column_amount, amount);
+        db.insert(TRANSACTION_TABLE,null,values);
+        db.close();
     }
 
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion != newVersion) {
-            // Simplest implementation is to drop all old tables and recreate them
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-            onCreate(db);
-        }
+
+    public List<Transaction> getAllTransac() {
+        SQLiteDatabase db = dbhelper.getReadableDatabase();
+        List<Transaction> transactionsList = new ArrayList<>();
+        String getTransactionsQuery = "SELECT * FROM "+TRANSACTION_TABLE;
+
+        Cursor cursor = db.rawQuery(getTransactionsQuery, null);
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    Transaction transaction = new Transaction(format.parse(cursor.getString(1)),
+                            cursor.getString(0),
+                            ExpenseType.valueOf(cursor.getString(2)),
+                            cursor.getDouble(3));
+                    transactionsList.add(transaction);
+
+                }while (cursor.moveToNext());
+            }
+        }catch (ParseException e){}
+        db.close();
+        return transactionsList;
     }
 
-    public void addTransferData (Transaction transaction) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        /////////int day, int month, int year
-        Calendar calendar = Calendar.getInstance();
-        Date transactionDate =transaction.getDate();
+    public List<Transaction> getPaginatedTransac(int limit) {
+        SQLiteDatabase db = dbhelper.getReadableDatabase();
+        List<Transaction> transactionsList = new ArrayList<>();
+        String getTransactionsQuery = "SELECT * FROM "+TRANSACTION_TABLE+" LIMIT "+limit;
 
-
-        contentValues.put(account_no, transaction.getAccountNo());
-        contentValues.put(COLUMN_day, calendar.get(Calendar.DATE));
-        contentValues.put(COLUMN_month, calendar.get(Calendar.MONTH));
-        contentValues.put(COLUMN_year, calendar.get(Calendar.YEAR));
-        contentValues.put(COLUMN_type, transaction.getExpenseType().toString());
-        contentValues.put(COLUMN_AMOUNT, transaction.getAmount());
-        db.insert(TABLE_NAME, null, contentValues);
-        //db.close();
-
-
+        Cursor cursor = db.rawQuery(getTransactionsQuery, null);
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    Transaction transaction = new Transaction(format.parse(cursor.getString(1)),
+                            cursor.getString(0),
+                            ExpenseType.valueOf(cursor.getString(2)),
+                            cursor.getDouble(3));
+                    transactionsList.add(transaction);
+                }while (cursor.moveToNext());
+            }
+        }catch (ParseException e){}
+        db.close();
+        return transactionsList;
     }
 
-    public Cursor readAllData() {
-        SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery("select * from " + TABLE_NAME, null);
-        return cursor;
-    }
+
 
 
 }

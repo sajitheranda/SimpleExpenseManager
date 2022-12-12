@@ -7,104 +7,111 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import lk.ac.mrt.cse.dbs.simpleexpensemanager.data.model.Account;
 
-public class Account_helper extends SQLiteOpenHelper {
+public class Account_helper {
 
-    private static final String DATABASE_NAME = "db200160R";
-    private static final int DATABASE_VERSION = 1;
+    private static final String DATABASE_NAME = "200160R";
+    private static final String ACCOUNT_TABLE = "account";
+    private static final String TRANSACTION_TABLE = "transction";
+    private static final int VERSION = 2;
+    DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 
-    public final static String TABLE_NAME = "account_table";
-
+    ////////////////////////////////////////////////////////////
     public final static String account_no = "account_no";
     public final static String column_bank = "bank";
     public final static String column_holder = "holder";
-    public final static String column_balance = "amount";
+    public final static String column_balance = "balance";
 
-    public Account_helper(Context context) {
-        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+
+
+    /////////////////////////////////////
+    private DBHelper dbhelper;
+
+    public  Account_helper(DBHelper dbhelper){
+        this.dbhelper=dbhelper;
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        // Create a String that contains the SQL statement to create the pets table
-        String SQL_CREATE_USER_TABLE =  "CREATE TABLE " + TABLE_NAME + " ("
-                + account_no + " TEXT, "
-                + column_bank + " TEXT, "
-                + column_holder + " TEXT, "
-                + column_balance + " REAL)";
 
-        // Execute the SQL statement
-        db.execSQL(SQL_CREATE_USER_TABLE);
+    public void addAccount(Account account) {
+        SQLiteDatabase db = dbhelper.getWritableDatabase();//this is returns the database
 
-        // Insert Into Table
-
-
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion != newVersion) {
-            // Simplest implementation is to drop all old tables and recreate them
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
-            onCreate(db);
-        }
-    }
-
-    public void getters(){
-
-    }
-
-    public void readAllData() {
-        /*
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor=null;
-        cursor = db.rawQuery("select * from " + TABLE_NAME, null);
-
-        Map<String, Account> accounts=new HashMap<>();
-        */
-
-        //return cursor;
-    }
-
-    public Cursor readParticularData (int accountNo) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor;
-        cursor = db.rawQuery("select * from " + TABLE_NAME + " where " +
-                account_no + " = " + accountNo, null);
-        return cursor;
-    }
-
-    public void updateAmount(String accountNo, double amount) {
-        Log.d ("TAG", "update Amount");
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("update " + TABLE_NAME + " set " + column_balance + " = " + amount + " where " +
-                account_no + " = " + accountNo);
-    }
-
-    public void addaccount(Account account){
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();//content values
-
+        ContentValues values = new ContentValues();
         values.put(account_no, account.getAccountNo());
         values.put(column_bank, account.getBankName());
         values.put(column_holder, account.getAccountHolderName());
         values.put(column_balance, account.getBalance());
 
-        db.insert(TABLE_NAME, null, values);
+        db.insert(ACCOUNT_TABLE, null, values);
+        db.close();//after using it we close that database
+    }
 
+    public Account getAccount(String accountNumber) {
+        SQLiteDatabase db = dbhelper.getReadableDatabase();
+        String getAccountQuery = "SELECT * FROM "+ACCOUNT_TABLE+" WHERE accountNumber = " + accountNumber;
+        Cursor cursor = db.rawQuery(getAccountQuery, null);
+        Account account =null;
+        if (cursor != null) {//if there is no account such as the given number then cursor will be null
+            account = new Account(cursor.getString(0),
+                    cursor.getString(1),
+                    cursor.getString(2),
+                    cursor.getDouble(3));
+        }
+        db.close();
+        return account;
+    }
 
-        //db.close();
+    public List<Account> getAccountsList() {
+        SQLiteDatabase db = dbhelper.getReadableDatabase();
+        List<Account> accounts = new ArrayList<>();
+        String getAccountQuery = "SELECT * FROM "+ACCOUNT_TABLE;
+
+        Cursor cursor = db.rawQuery(getAccountQuery, null);
+
+        if (((Cursor) cursor).moveToFirst()) {
+            do {
+                Account account = new Account(cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getDouble(3));
+                accounts.add(account);
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return accounts;
+    }
+
+    public void updateValues(Account account) {
+        SQLiteDatabase db= dbhelper.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(account_no, account.getAccountNo());
+        values.put(column_bank, account.getBankName());
+        values.put(column_holder, account.getAccountHolderName());
+        values.put(column_balance, account.getBalance());
+        db.update(ACCOUNT_TABLE, values, account_no+" = ?",new String[]{account.getAccountNo()});
+        db.close();
+    }
+
+    public void removeAccount(String account_number) {
+        SQLiteDatabase db = dbhelper.getWritableDatabase();
+        db.delete(ACCOUNT_TABLE, account_no+" = ?", new String[]{account_number});
+        db.close();
     }
 
 
-    public void deleteaccount(String Accountno){
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_NAME, "account_no=?", new String[]{Accountno});
-        //db.close();
-    }
+
+
+
+
+
+
 
 }
